@@ -6,7 +6,7 @@ public static class MousePositionUtils
     {
         Vector3 position = Vector3.zero;
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit info, 10000))
+        if (Physics.Raycast(ray, out RaycastHit info, 10000, LayerMask.GetMask("Level")))
         {
             position = info.point;
         }

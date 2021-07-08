@@ -1,4 +1,5 @@
 ﻿using CodeMonkey.Utils;
+using PathFinding;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,80 +9,102 @@ using UnityEngine;
 
 namespace Grid
 {
-    public class GridBuildingSystem: Singleton<GridBuildingSystem>
+    public class GridBuildingSystem : Singleton<GridBuildingSystem>
     {
         public PlaceableObjectSO PlaceableObjectSO;
+        public int rowCount = 10;
+        public int columnCount = 10;
+        public int cellSize = 5;
+        public Vector3 StartOrigin = Vector3.zero;
+        public bool ShowDebug = false;
+
         public Action OnSelectChanged;
+        public Action<bool> OnBuildingModeChanged;
+
+        public bool IsBuildingMode { get; set; } = false;
 
         private GridXZ<GridObject> grid;
         private PlaceableObjectSO.Dir dir = PlaceableObjectSO.Dir.Down;
+
+        private GridPathFinding pf;
+
         public override void Awake()
         {
             base.Awake();
-            int gridWidth = 10;
-            int gridHeight = 10;
-            float cellSize = 10f;
 
-            grid = new GridXZ<GridObject>(gridWidth, gridHeight, cellSize, Vector3.zero, (GridXZ<GridObject> g, int x, int z) => new GridObject(g, x, z));
+            grid = new GridXZ<GridObject>(rowCount,
+                columnCount,
+                cellSize,
+                StartOrigin,
+                (GridXZ<GridObject> g, int x, int z) => new GridObject(g, x, z),
+                ShowDebug);
+            pf = new GridPathFinding(grid);
         }
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetKeyDown(KeyCode.B))
             {
-                var mousePosition = MousePositionUtils.MouseToTerrainPosition();
-                grid.GetXZ(mousePosition, out int x, out int z);
-
-                var gridPosList = PlaceableObjectSO.GetGridPositionList(new Vector2Int(x, z), dir);
-                var canBuild = true;
-                foreach (var gridPos in gridPosList)
-                {
-                    if (!grid.GetGridObject(gridPos.x, gridPos.y).CanBuild)
-                    {
-                        canBuild = false;
-                        break;
-                    }
-                }
-                if (canBuild)
-                {
-                    var rotOffset = PlaceableObjectSO.GetRotationOffset(dir);
-                    var placedWorldPos = grid.GetWorldPosition(x, z) + new Vector3(rotOffset.x, 0, rotOffset.y) * grid.CellSize;
-
-                    var placedObject = PlaceableObject.Create(
-                        placedWorldPos, 
-                        new Vector2Int(x, z), dir,
-                        PlaceableObjectSO);
-
-                    foreach (var gridPos in gridPosList)
-                    {
-                        grid.GetGridObject(gridPos.x, gridPos.y).PlaceableObject = placedObject;                 
-                    }
-                }
-                else
-                {
-                    // TODO: print cannot build text...
-                    UtilsClass.CreateWorldTextPopup("不能建在这里", mousePosition);
-                }
+                IsBuildingMode = !IsBuildingMode;
+                OnBuildingModeChanged.Invoke(IsBuildingMode);
             }
 
-            if (Input.GetMouseButtonDown(1))
+            if (IsBuildingMode)
             {
-                var gridObject = grid.GetGridObject(MousePositionUtils.MouseToTerrainPosition());
-                var placedObject = gridObject.PlaceableObject;
-                if (placedObject != null)
+                if (Input.GetMouseButtonDown(0))
                 {
-                    placedObject.DestroySelf();
-                    var gridPosList = placedObject.GetGridPositionList();
+                    var mousePosition = MousePositionUtils.MouseToTerrainPosition();
+                    grid.GetXZ(mousePosition, out int x, out int z);
+
+                    var gridPosList = PlaceableObjectSO.GetGridPositionList(new Vector2Int(x, z), dir);
+                    var canBuild = true;
                     foreach (var gridPos in gridPosList)
                     {
-                        grid.GetGridObject(gridPos.x, gridPos.y).PlaceableObject = placedObject;
+                        if (!grid.GetGridObject(gridPos.x, gridPos.y).CanBuild)
+                        {
+                            canBuild = false;
+                            break;
+                        }
+                    }
+                    if (canBuild)
+                    {
+                        var rotOffset = PlaceableObjectSO.GetRotationOffset(dir);
+                        var placedWorldPos = grid.GetWorldPosition(x, z) + new Vector3(rotOffset.x, 0, rotOffset.y) * grid.CellSize;
+
+                        var placedObject = PlaceableObject.Create(
+                            placedWorldPos,
+                            new Vector2Int(x, z), dir,
+                            PlaceableObjectSO);
+                        foreach (var gridPos in gridPosList)
+                        {
+                            grid.GetGridObject(gridPos.x, gridPos.y).PlaceableObject = placedObject;
+                        }
+                    }
+                    else
+                    {
+                        UtilsClass.CreateWorldTextPopup("Cannot build here", mousePosition);
                     }
                 }
-            }
 
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                dir = PlaceableObjectSO.GetNextDir(dir);
+                if (Input.GetMouseButtonDown(1))
+                {
+                    var gridObject = grid.GetGridObject(MousePositionUtils.MouseToTerrainPosition());
+                    var placedObject = gridObject.PlaceableObject;
+                    if (placedObject != null)
+                    {
+                        placedObject.DestroySelf();
+                        var gridPosList = placedObject.GetGridPositionList();
+                        foreach (var gridPos in gridPosList)
+                        {
+                            grid.GetGridObject(gridPos.x, gridPos.y).PlaceableObject = placedObject;
+                        }
+                    }
+                }
+
+                if (Input.GetKeyDown(KeyCode.R))
+                {
+                    dir = PlaceableObjectSO.GetNextDir(dir);
+                }
             }
         }
 
