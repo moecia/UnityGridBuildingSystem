@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ab2088ca752ac14086b0161b4402499, type: 3}
-  m_Name: Cube 2x2
+  m_Name: Cube 2x2_SO
   m_EditorClassIdentifier: 
-  NameString: Cube
+  NameString: Cube 2x2
   Prefab: {fileID: 2544116289532369352, guid: fbb54b2d29154f243b4ddc0d79f34455, type: 3}
   Width: 2
   Height: 2

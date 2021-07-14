@@ -5,9 +5,9 @@ using DG.Tweening;
 
 public class PlaceableObject : MonoBehaviour
 {
-    private PlaceableObjectSO placeableObjectSO;
+    public PlaceableObjectSO placeableObjectSO;
+    public PlaceableObjectSO.Dir dir;
     private Vector2Int origin;
-    private PlaceableObjectSO.Dir dir;
 
     public static PlaceableObject Create(Vector3 worldPosition, Vector2Int origin, PlaceableObjectSO.Dir dir, PlaceableObjectSO placeableObjectSO)
     {

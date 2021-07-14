@@ -15,6 +15,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CodeMonkey.Utils;
+using Newtonsoft.Json;
 
 public class GridXZ<TGridObject>
 {
@@ -26,12 +27,15 @@ public class GridXZ<TGridObject>
         public int z;
     }
 
+    public TGridObject[,] GridArray;
     public int Width;
     public int Height;
     public float CellSize;
+    [JsonIgnore]
     public TextMesh[,] DebugTextArray { get; private set; }
     private Vector3 originPosition;
-    private TGridObject[,] gridArray;
+
+    public GridXZ() { }
 
     public GridXZ(int width, int height, float cellSize, Vector3 originPosition, Func<GridXZ<TGridObject>, int, int, TGridObject> createGridObject, bool showDebug)
     {
@@ -40,13 +44,13 @@ public class GridXZ<TGridObject>
         this.CellSize = cellSize;
         this.originPosition = originPosition;
 
-        gridArray = new TGridObject[width, height];
+        GridArray = new TGridObject[width, height];
 
-        for (int x = 0; x < gridArray.GetLength(0); x++)
+        for (int x = 0; x < GridArray.GetLength(0); x++)
         {
-            for (int z = 0; z < gridArray.GetLength(1); z++)
+            for (int z = 0; z < GridArray.GetLength(1); z++)
             {
-                gridArray[x, z] = createGridObject(this, x, z);
+                GridArray[x, z] = createGridObject(this, x, z);
             }
         }
 
@@ -59,11 +63,11 @@ public class GridXZ<TGridObject>
     public void InitializeDebugTextArray(int width, int height, float cellSize)
     {
         DebugTextArray = new TextMesh[width, height];
-        for (int x = 0; x < gridArray.GetLength(0); x++)
+        for (int x = 0; x < GridArray.GetLength(0); x++)
         {
-            for (int z = 0; z < gridArray.GetLength(1); z++)
+            for (int z = 0; z < GridArray.GetLength(1); z++)
             {
-                DebugTextArray[x, z] = UtilsClass.CreateWorldText(gridArray[x, z]?.ToString(), null, GetWorldPosition(x, z) + new Vector3(cellSize, 0, cellSize) * .5f, 15, Color.white, TextAnchor.MiddleCenter, TextAlignment.Center);
+                DebugTextArray[x, z] = UtilsClass.CreateWorldText(GridArray[x, z]?.ToString(), null, GetWorldPosition(x, z) + new Vector3(cellSize, 0, cellSize) * .5f, 15, Color.white, TextAnchor.MiddleCenter, TextAlignment.Center);
                 Debug.DrawLine(GetWorldPosition(x, z), GetWorldPosition(x, z + 1), Color.white, 100f);
                 Debug.DrawLine(GetWorldPosition(x, z), GetWorldPosition(x + 1, z), Color.white, 100f);
             }
@@ -73,7 +77,7 @@ public class GridXZ<TGridObject>
 
         OnGridObjectChanged += (object sender, OnGridObjectChangedEventArgs eventArgs) =>
         {
-            DebugTextArray[eventArgs.x, eventArgs.z].text = gridArray[eventArgs.x, eventArgs.z]?.ToString();
+            DebugTextArray[eventArgs.x, eventArgs.z].text = GridArray[eventArgs.x, eventArgs.z]?.ToString();
         };
     }
 
@@ -97,7 +101,7 @@ public class GridXZ<TGridObject>
     {
         if (x >= 0 && z >= 0 && x < Width && z < Height)
         {
-            gridArray[x, z] = value;
+            GridArray[x, z] = value;
             TriggerGridObjectChanged(x, z);
         }
     }
@@ -117,7 +121,7 @@ public class GridXZ<TGridObject>
     {
         if (x >= 0 && z >= 0 && x < Width && z < Height)
         {
-            return gridArray[x, z];
+            return GridArray[x, z];
         }
         else
         {

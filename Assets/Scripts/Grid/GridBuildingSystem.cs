@@ -56,34 +56,7 @@ namespace Grid
                     var mousePosition = MousePositionUtils.MouseToTerrainPosition();
                     grid.GetXZ(mousePosition, out int x, out int z);
 
-                    var gridPosList = PlaceableObjectSO.GetGridPositionList(new Vector2Int(x, z), dir);
-                    var canBuild = true;
-                    foreach (var gridPos in gridPosList)
-                    {
-                        if (!grid.GetGridObject(gridPos.x, gridPos.y).CanBuild)
-                        {
-                            canBuild = false;
-                            break;
-                        }
-                    }
-                    if (canBuild)
-                    {
-                        var rotOffset = PlaceableObjectSO.GetRotationOffset(dir);
-                        var placedWorldPos = grid.GetWorldPosition(x, z) + new Vector3(rotOffset.x, 0, rotOffset.y) * grid.CellSize;
-
-                        var placedObject = PlaceableObject.Create(
-                            placedWorldPos,
-                            new Vector2Int(x, z), dir,
-                            PlaceableObjectSO);
-                        foreach (var gridPos in gridPosList)
-                        {
-                            grid.GetGridObject(gridPos.x, gridPos.y).PlaceableObject = placedObject;
-                        }
-                    }
-                    else
-                    {
-                        UtilsClass.CreateWorldTextPopup("Cannot build here", mousePosition);
-                    }
+                    PlaceBuilding(PlaceableObjectSO, x, z, dir);
                 }
 
                 if (Input.GetMouseButtonDown(1))
@@ -105,6 +78,41 @@ namespace Grid
                 {
                     dir = PlaceableObjectSO.GetNextDir(dir);
                 }
+            }
+        }
+
+        private void PlaceBuilding(PlaceableObjectSO placeableObjectSO, int x, int z, PlaceableObjectSO.Dir direction)
+        {
+            var gridPosList = placeableObjectSO.GetGridPositionList(new Vector2Int(x, z), dir);
+            var canBuild = true;
+            foreach (var gridPos in gridPosList)
+            {
+                if (!grid.GetGridObject(gridPos.x, gridPos.y).CanBuild)
+                {
+                    canBuild = false;
+                    break;
+                }
+            }
+            if (canBuild)
+            {
+                var rotOffset = placeableObjectSO.GetRotationOffset(dir);
+                var placedWorldPos = grid.GetWorldPosition(x, z) + new Vector3(rotOffset.x, 0, rotOffset.y) * grid.CellSize;
+
+                var placedObject = PlaceableObject.Create(
+                    placedWorldPos,
+                    new Vector2Int(x, z), dir,
+                    placeableObjectSO);
+                foreach (var gridPos in gridPosList)
+                {
+                    var gridTobuild = grid.GetGridObject(gridPos.x, gridPos.y);
+                    gridTobuild.PlaceableObject = placedObject;
+                    gridTobuild.PlaceableObjectName = placedObject.placeableObjectSO.NameString;
+                    gridTobuild.Direction = placedObject.dir;
+                }
+            }
+            else
+            {
+                UtilsClass.CreateWorldTextPopup("Cannot build here", grid.GetWorldPosition(x, z));
             }
         }
 
@@ -133,6 +141,45 @@ namespace Grid
             else
             {
                 return mousePosition;
+            }
+        }
+
+        public void SaveGrid()
+        {
+            SaveSystem.SaveObject("grid", grid);
+        }
+
+        public void LoadGrid()
+        {
+            foreach (var gridObject in grid.GridArray)
+            {
+                if (gridObject.PlaceableObject != null)
+                {
+                    gridObject.PlaceableObject.DestroySelf();
+                    gridObject.ClearPlaceableObject();
+                }
+            }
+            RebuildGrid();
+            pf = new GridPathFinding(grid);
+        }
+
+        public void RebuildGrid()
+        {
+            var g = SaveSystem.LoadSavedObject<GridXZ<GridObject>>("grid");
+            this.grid = new GridXZ<GridObject>(g.Width,
+                g.Height,
+                g.CellSize,
+                StartOrigin,
+                (GridXZ<GridObject> g, int x, int z) => new GridObject(g, x, z),
+                ShowDebug);
+            foreach (var gridObject in g.GridArray)
+            {
+                var name = gridObject.PlaceableObjectName;
+                if (!String.IsNullOrEmpty(name))
+                {
+                    var placeableObjectSO = Resources.Load<PlaceableObjectSO>($"ScriptableObjects/{name}_SO");
+                    PlaceBuilding(placeableObjectSO, gridObject.x, gridObject.z, gridObject.Direction);
+                }
             }
         }
     }
