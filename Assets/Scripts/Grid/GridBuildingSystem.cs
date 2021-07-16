@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Grid
 {
-    public class GridBuildingSystem : Singleton<GridBuildingSystem>
+    public class GridBuildingSystem : Singleton<GridBuildingSystem>, IDisposable
     {
         public PlaceableObjectSO PlaceableObjectSO;
         public int rowCount = 10;
@@ -79,6 +79,11 @@ namespace Grid
                     dir = PlaceableObjectSO.GetNextDir(dir);
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            Dispose();
         }
 
         private void PlaceBuilding(PlaceableObjectSO placeableObjectSO, int x, int z, PlaceableObjectSO.Dir direction)
@@ -181,6 +186,19 @@ namespace Grid
                     PlaceBuilding(placeableObjectSO, gridObject.x, gridObject.z, gridObject.Direction);
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < grid.GridArray.GetLength(0); i++)
+            {
+                for (int j = 0; j < grid.GridArray.GetLength(1); j++)
+                {
+                    grid.GridArray[i, j] = null;
+                }
+            }
+            grid.GridArray = null;
+            grid = null;
         }
     }
 }
